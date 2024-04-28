@@ -1092,3 +1092,366 @@ Tratando erros: Aprendemos a tratar erros com o status code usando um switch cas
 Erro customizável: Aprendemos a criar um caso de erro customizado, que permite a manipulação mais flexível da mensagem de erro.
 Decodificando a resposta: Foi explicado como usar o JSON Serialization para decodificar a resposta do servidor e converter esta resposta para um dicionário.
 Uso de ZStack: Aprendemos também como usar o ZStack para colocar elementos um acima do outro. Isso é importante para casos em que o Snackbar deve ser exibido acima de outros elementos.
+
+#### 28/04/2024
+
+@03-Finalizando SnackBar
+
+@@01
+Projeto da aula anterior
+
+Você pode revisar o seu código e acompanhar o passo a passo do desenvolvimento do nosso projeto e, se preferir, pode baixar o projeto da aula anterior.
+Bons estudos!
+
+https://github.com/alura-cursos/3367-swift-tratamento-de-erros/archive/refs/heads/aula-2.zip
+
+@@02
+Mostrando o erro no SnackBar
+
+O objetivo desta aula é finalizarmos o snackbar.
+Ainda tem alguns comportamentos que precisamos terminar, como, por exemplo, mostrar o snackbar por alguns segundos e depois ocultar. Além disso, há a necessidade de ajustar a parte da mensagem de erro, que está sendo exibida como erro desconhecido. Vamos fazer alguns ajustes no nosso enum de erros.
+
+Começaremos inserindo a mensagem que foi configurada no backend. Vou abrir a pasta Networking, nela temos o RequestError, que é o enum de erro que criamos. Temos um caso de erro já configurado e a ideia agora é implementar este caso para retornar a mensagem que vem do backend.
+
+Logo abaixo da linha 23, criarei um novo caso, chamado custom. Vou capturar o erro criando uma constante chamada errorData. A ideia é extrair o valor do erro. Para evitar que o compilador aponte uma mensagem de erro, retornarei uma string vazia e em depois podemos apagá-la.
+
+Na linha 26, começarei criando um if let chamado jsonError. Este será igual à constante errorData criada na linha 24. Tentarei acessar o objeto erro (error), e convertê-lo para um dicionário de String n ([String: Any]).
+
+Dentro do if let, criarei uma constante chamada message. Acessarei a mensagem através da constante errorData (é opcional, então vou colocar ? após errorData).
+
+Dentro do if, vamos criar o message igual ao jsonError e acessarei o valor da mensagem, jsonError["message"]. Tentarei converter isso para uma string. Caso não consiga, para evitar a opção nula, colocarei uma string vazia. Agora que temos a mensagem, posso retornar a message.
+
+    var customMessage: String {
+        switch self {
+        case .decode:
+            return "erro de decodificação"
+        case .unauthorized:
+            return "sessão expirada"
+        case .custom(let errorData):
+            if let jsonError = errorData?["error"] as? [String: Any] {
+                let message = jsonError["message"] as? String ?? ""
+                return message
+            }
+COPIAR CÓDIGO
+Se por acaso não entrar neste if, ou seja, ocorrer algum problema no objeto que o servidor está retornando, deixarei um erro pré-configurado. Algo como "Ops, ocorreu um erro ao carregar as informações".
+
+    var customMessage: String {
+        switch self {
+        case .decode:
+            return "erro de decodificação"
+        case .unauthorized:
+            return "sessão expirada"
+        case .custom(let errorData):
+            if let jsonError = errorData?["error"] as? [String: Any] {
+                let message = jsonError["message"] as? String ?? ""
+                return message
+            }
+            return "Ops! Ocorreu um erro ao carregar as informações"
+        default:
+            return "erro desconhecido"
+        }
+COPIAR CÓDIGO
+Com isso concluímos a configuração do caso do custom. Vou voltar ao arquivo HomeView, onde temos a nossa implementação. Vamos rodar o projeto para testar.
+
+Cliquei em "Run" na parte superior esquerda. Ele exibe exatamente o erro que estamos recebendo da API que criamos. Esta mensagem:
+
+Ops! Ocorreu um erro, mas já estamos trabalhando para solucioná-lo
+Para confirmar se está funcionando mesmo, vamos abrir a API e alterar a mensagem de erro.
+
+Vamos inserir uma nova mensagem que será: "Erro ao carregar os especialistas".
+
+Sempre que fazemos uma alteração na API, precisamos salvar. Na parte superior direita temos o botão "Save".
+
+Ao rodar o projeto mais uma vez, notamos que a mensagem de erro que configuramos na API foi alterada. Agora está exibindo a seguinte mensagem:
+
+Erro ao carregar os especialistas
+Isso significa que estamos conseguindo capturar o erro que o servidor está nos retornando e mostrar no app. O mais importante é isso: manter o usuário atualizado sobre o que está acontecendo no aplicativo.
+
+A ideia principal dessas aulas é sempre dar esse feedback para o usuário, para que ele perceba as ações do app.
+
+Voltarei à API. Alterei a mensagem de erro na linha 17 somente para testar. Vou retornar à mensagem que estava antes e salvar.
+
+Ao rodar mais uma vez o projeto, temos o snackbar com a mensagem correta. A ideia agora é terminarmos de configurar com alguns ajustes. Note que o snackbar ficou muito próximo à tab bar. Portanto, a ideia é dar um espaçamento maior e aplicar um efeito para que ele desapareça de acordo com os segundos que configurarmos. Veremos isso a seguir!
+
+@@03
+Finalizando a View da SnackBar
+
+Estamos de volta com o nosso projeto. Então, a ideia é finalizarmos o nosso snackbar. A primeira coisa que vamos trabalhar neste vídeo é para fazer o snackbar desaparecer após um determinado tempo. Então, vamos configurar alguns segundos e, depois disso, fazer o snackbar desaparecer.
+Para isso, vamos abrir a view do snackbar. No menu lateral esquerdo, vamos acessar o arquivo Views/SnackBarView /SnackBarErrorView. É onde temos toda a implementação da view que criamos.
+
+Vamos utilizar um método chamado DispatchQueue, que permite configurar determinados segundos e alterar para a thread principal, que é a thread que utilizamos para fazer modificações da interface do usuário. Com base nisso, conseguimos fazer nosso snackbar desaparecer.
+
+Na linha 24, abaixo do .cornerRadius(10), vamos colocar um método chamado onAppear. Esse método serve para colocar tudo que queremos que uma view faça assim que ela seja desenhada na tela. Então, nesse caso, queremos mostrar o snackbar e, depois de um determinado tempo, fazer ele desaparecer.
+
+No onAppear, podemos chamar o método dispatchQueue.main.after. Quando colocamos .after, ele traz no autocomplete vários inicializadores para esse método. O que vamos utilizar é o primeiro, que está sendo mostrado, o asyncAfter(deadline:execute) que permite passar um tempo e, depois, a execução.
+
+Esse deadline é a configuração dos segundos que vamos utilizar. Quero que comece no momento que ele seja exibido, portanto .now mais 3 segundos. Quero que ele dure 3 segundos. O segundo parâmetro execute, vamos apagar. Depois disso, vamos configurar para remover o snackbar.
+
+Vamos utilizar essa variável que criamos com o binding, que é esse isShowing, e vamos configurar o valor como false.
+
+    var body: some View {
+        VStack {
+            Spacer()
+            if isShowing {
+                Text(message)
+                    .padding()
+                    .background(Color.red)
+                    .foregroundColor(.white)
+                    .cornerRadius(10)
+                    .transition(.move(edge: .bottom))
+                    .onAppear {
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
+                                isShowing = false
+                        }
+                    }
+            }
+        }
+COPIAR CÓDIGO
+Relembrando, inicializamos fazendo uma verificação. Se isShowing for verdadeiro, ele desenha nosso componente snackbar. Se for falso, ele não faz nada. Então, a ideia é alterar o valor dela no isShowing. Vou fazer isso de forma animada, então, vamos utilizar o método ifAnimation, onde posso colocar o isShowing. Vou recortar e colocá-lo aqui dentro. Alterei para false.
+
+    var body: some View {
+        VStack {
+            Spacer()
+            if isShowing {
+                Text(message)
+                    .padding()
+                    .background(Color.red)
+                    .foregroundColor(.white)
+                    .cornerRadius(10)
+                    .transition(.move(edge: .bottom))
+                    .onAppear {
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
+                            withAnimation {
+                                isShowing = false
+                            }
+                        }
+                    }
+            }
+        }
+COPIAR CÓDIGO
+Vamos rodar o projeto para ver se está funcionando. Vou gerar um build e clicar em "Run". Ele subiu o simulador, mostrou o snackbar de erro, e depois de 3 segundos ele desapareceu.
+
+Refinando o componente
+Até aqui, já conseguimos uma grande evolução, que é mostrar e fazer o snackbar desaparecer. Agora, vamos refinar o nosso componente, adicionando algumas animações. A primeira que vamos inserir é uma transição no snackbar. Então, ele vai aparecer na tela e, depois de 3 segundos, quero que ele faça um efeito como se estivesse sendo removido de cima para baixo.
+
+Vamos implementar um método de transição, Transition, antes do onAppear. Na transição, consigo colocar uma opção chamada move e posso configurar para onde eu quero que ele vá. No nosso caso, para a parte inferior, que é o bottom.
+
+    var body: some View {
+        VStack {
+            Spacer()
+            if isShowing {
+                Text(message)
+                    .padding()
+                    .background(Color.red)
+                    .foregroundColor(.white)
+                    .cornerRadius(10)
+                    .transition(.move(edge: .bottom))
+                    .onAppear {
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
+                            withAnimation {
+                                isShowing = false
+                            }
+                        }
+                    }
+            }
+        }
+COPIAR CÓDIGO
+Com isso, já temos o efeito da transição. Vou rodar o projeto mais uma vez. Então, ele vai mostrar o snackbar e, depois de um tempo, ele vai descer com a mensagem.
+
+Para finalizar, vamos ajustar o espaçamento entre o snackbar e as opções abaixo da TabBar.. Vou fazer isso depois de terminar o VStack. Então, tenho aqui a chave onde fecho o VStack e é aqui que vamos implementar.
+
+Vou colocar um frame. Esse frame quero que pegue a altura máxima disponível. Então, vamos utilizar o parâmetro MaxWidth, onde vamos passar infinity. Assim, ele pega toda a largura disponível dentro da tela que estou exibindo o componente.
+
+Depois disso, coloco um Padding na horizontal. Lembrando, o Padding na horizontal pega a horizontal e adiciona um pouco de Padding de cada lado. Então, é isso que faço nessa linha. Se eu quisesse colocar o Padding de um lado só, teria que apontar se é Leading ou Trailing, ou seja, se é esquerda ou direita. O eixo que eu quero pegar para colocar o Padding.
+
+Nesse caso, como coloquei horizontal, ele vai pegar um pouco dos dois lados. Para finalizar, vamos colocar Padding na parte inferior. Então, pego aqui o Bottom e faço uma verificação. Se eu estou exibindo, ou seja, se isShowing é verdadeiro.
+
+Aqui utilizarei uma extensão que deixarei disponível para você copiar antes de iniciar essa aula. Ela está no material do curso. Portanto, vamos pedir para você adicioná-la no projeto.
+
+Vou fazer um zoom aqui perto da pasta onde tenho as Extensions. Então, dentro da pasta Extensions vamos criar o arquivo UIApplication+. O código desse arquivo, vamos deixar disponível para você copiar e utilizar em seu projeto:
+
+UIApplication+
+//  UIAplication+.swift
+//  Vollmed
+//
+//  Created by ALURA
+//
+
+import UIKit
+
+extension UIApplication {
+    var getKeyWindow: UIWindow? {
+        return self.connectedScenes
+            .filter { $0.activationState == .foregroundActive }
+            .first(where: { $0 is UIWindowScene })
+            .flatMap({ $0 as? UIWindowScene })?.windows
+            .first(where: \.isKeyWindow)
+    }
+}
+COPIAR CÓDIGO
+Esse código, basicamente, pega a Window, que é a tela ativa. Para conseguirmos colocar o Bottom que eu preciso no snackbar, precisamos verificar qual é a janela ativa para conseguir fazer isso.
+
+Então, tem aqui uma extensão onde verifica isso, qual é a janela ativa. A partir disso, conseguimos pegar a SafeAreaInsets, como chamamos, para pegar de fato o Bottom.
+
+Então, veja como funciona. Na linha 36 vamos utilizar o UIApplication. É um Singleton, então .share.getKeyWindow, que é a extensão que comentei com você. Que está aqui na linha 11, var getKeyWindow: UIWindow?.
+
+Com isso pego a SafeArea, que é o espaço que temos dos iPhones, tanto na parte inferior quanto superior. E quero pegar a parte de baixo, então .bottom. Se ele não conseguir, pego aqui e configuro um valor de 0.
+
+Caso contrário, quero que meu snackbar fique um tamanho de 100 acima da parte inferior que peguei. Ou seja, fica com uma margem um pouco mais agradável para o nosso componente.
+
+ .frame(maxWidth: .infinity)
+        .padding(.horizontal)
+        .padding(.bottom, isShowing ? UIApplication.shared.getKeyWindow?.safeAreaInsets.bottom ?? 0 : -100)
+COPIAR CÓDIGO
+Então, o que é importante aqui é que estamos utilizando uma extensão, que estará disponível para você utilizar e adicionar no seu projeto. E também ajustamos a questão da exibição ou não do snackbar.
+
+Vamos rodar o projeto para ver se está tudo ok. Então, vamos gerar mais um build e aí vamos fazer esse teste.
+
+Perceba que ficou com uma margem um pouco maior. E a animação de cima para baixo para desaparecer com o snackbar.
+
+Com isso, terminamos de fato a implementação do snackbar.
+
+Uma coisa que não podemos esquecer é de ir no arquivo HTTPClient, onde configuramos o apiary. Então, fizemos tudo isso através do apiary. Agora que já não precisamos mais dela, vamos apagar essa URL que criamos aqui, desde a linha 27 até a linha 29. E vamos utilizar a URL Components que já tínhamos. Esse trecho de código ficará assim:
+
+        var urlComponents = URLComponents()
+        urlComponents.scheme = endpoint.scheme
+        urlComponents.host = endpoint.host
+        urlComponents.path = endpoint.path
+        urlComponents.port = 3000
+        
+        guard let url = urlComponents.url else {
+            return .failure(.invalidURL)
+        }
+        
+        var request = URLRequest(url: url)
+        request.httpMethod = endpoint.method.rawValue
+        request.allHTTPHeaderFields = endpoint.header
+//código omitido
+COPIAR CÓDIGO
+Então, é isso que vamos fazer, para voltarmos com a implementação do aplicativo. Vou rodar mais uma vez o app para testarmos e aí ele traz a lista de médicos especialistas.
+
+Com isso, finalizamos essa aula sobre o snackbar, que serve para uma infinidade de coisas, principalmente para tratamento de erros, conforme vimos nas primeiras aulas!
+
+@@04
+Todos por um?
+
+Durante a aula, analisamos o projeto VollMed desenvolvido até o momento. Percebemos que a classe WebService é responsável pela implementação de todos os métodos de requisição do aplicativo. Quais são possíveis problemas você poderia destacar ao colocar todos os métodos em uma única classe:
+
+O arquivo pode ficar muito grande, o que implicaria na demora do tempo de resposta de uma requisição.
+ 
+Alternativa correta
+Concentrar todas as requisições no mesmo arquivo pode prejudicar a escalabilidade do projeto, e dificultaria o entendimento de quais requisições pertencem a quais funcionalidades do projeto.
+ 
+Quando colocamos tudo em um único lugar, se torna muito mais complicado de encontrar e entender o que faz cada requisição no projeto.
+Alternativa correta
+A classe WebService, apesar de cuidar apenas de requisições http, pode se tornar um arquivo muito grande a medida que o projeto cresce. Ou seja, não é escalável.
+ 
+Esse tipo de implementação pode crescer a medida que o projeto aumentar, o que acarretaria em problemas de manutenção.
+
+@@05
+Faça como eu fiz: alterando a SnackBar View
+
+Na Clínica Médica Voll, a equipe de TI está trabalhando para melhorar a experiência do usuário em seu aplicativo. Eles perceberam que os usuários têm problemas ao receber mensagens de erro quando algo dá errado no aplicativo. Eles querem que sua mensagem de erro apareça na forma de uma snackbar, que deve desaparecer após 3 segundos. Ajude-os a implementar isso.
+Você precisa modificar a View do snackbar para que ele desapareça depois de 3 segundos. Para fazer isso, você precisará fazer uso do modificador .onAppear para determinar quando a View aparece na tela. Depois disso, você deve agendar a execução de isShowing = false para depois de 3 segundos usando DispatchQueu.main.asyncAfter. Por último, você deve adicionar um bloco de animação para garantir que a View não desapareça de forma abrupta. Como faremos isso?
+
+Primeiro, criamos uma extensão UIApplication para encontrar a janela principal (getKeyWindow). Em seguida, adicionamos o modificador .transition para a SnackbarErrorView para que ela desapareça suavemente.
+Usamos .onAppear() para iniciar uma contagem após a view aparecer, após 3 segundos, ajustamos o isShowing para false, que irá desencadear a view para desaparecer.
+
+Notamos o uso do bloco withAnimation para garantir que a transição seja não perturbe o usuário. Assim, a SnackbarErrorView será exibida quando isShowingSnackBar for verdadeira e desaparecerá suavemente após 3 segundos.
+
+import Foundation
+import UIKit
+
+extension UIApplication {
+    var getKeyWindow: UIWindow? {
+        return self.connectedScenes
+            .filter { $0.activationState == .foregroundActive }
+            .first(where: { $0 is UIWindowScene })
+            .flatMap({ $0 as? UIWindowScene })?.windows
+            .first(where: \.isKeyWindow)
+    }
+}
+
+if isShowingSnackBar {
+    SnackBarErrorView(isShowing: $isShowingSnackBar, message: errorMessage)
+        .transition(.move(edge: .bottom))
+        .onAppear {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
+                withAnimation {
+                    isShowing = false
+                }
+            }
+        }
+}
+
+@@06
+Para saber mais: animações e transições em SwiftUI
+
+Olá, aprendiz! Estou aqui hoje para te ensinar algo super interessante: como criar animações e transições utilizando a SwiftUI! Confuso? Não se preocupe! Este tópico pode parecer assustador, mas com a abordagem certa, você pode se tornar um mestre em animações e transições em nenhum tempo.
+Fundamentos da Animação
+A primeira coisa que você precisa entender é o conceito de animação. Animar é dar vida, é criar movimento. No contexto do desenvolvimento de softwares, animações são usadas para tornar a interface do usuário mais agradável, dinâmica, tornando a interação do usuário mais intuitiva e divertida. Agora, ao falar sobre SwiftUI, estamos nos referindo à estrutura de interface do usuário inovadora da Apple, que permite o desenvolvimento de interfaces fantásticas para todos os dispositivos Apple de forma declarativa.
+
+Motivação
+Se aventurar nas águas da animação e transição na SwiftUI nos dá o poder de criar aplicativos com aparência profissional e polida, melhorando a experiência do usuário. Com essas técnicas, você pode mover, dissolver, escalar e realizar todos os tipos de animações em componentes da sua IU, dando um toque a mais à sua criação.
+
+Adicionando Animações em SwiftUI
+Então, como podemos criar animações no SwiftUI? Bem, o SwiftUI torna a facilita a nossa vida com .animation().
+
+struct ContentView: View {
+    @State private var animationAmount: CGFloat = 1
+
+    var body: some View {
+        Button("Tap Me") {
+            self.animationAmount += 1
+        }
+        .padding(50)
+        .background(Color.red)
+        .foregroundColor(.white)
+        .clipShape(Circle())
+        .scaleEffect(animationAmount)
+        .animation(.default)
+    }
+}
+COPIAR CÓDIGO
+Aqui criamos um botão que aumentará seu tamanho cada vez que for pressionado. A função .animation() modifica a maneira como as mudanças vão ocorrer a cada vez que 'animationAmount' for atualizado.
+
+Vamos Falar sobre Transições
+Então, o que vem a ser uma transição? Uma transição é a animação que ocorre quando um componente é inserido ou removido da IU. No SwiftUI, as transições são aplicadas usando a modificação .transition().
+
+Um exemplo de código com transição básica é o seguinte:
+
+struct ContentView: View {
+    @State private var isShowingRed = false
+
+    var body: some View {
+        VStack {
+            Button("Tap Me") {
+                withAnimation {
+                    self.isShowingRed.toggle()
+                }
+            }
+
+            if isShowingRed {
+                Rectangle()
+                    .fill(Color.red)
+                    .frame(width: 200, height: 200)
+                    .transition(.scale)
+            }
+        }
+    }
+}
+COPIAR CÓDIGO
+No exemplo acima, quando o botão é pressionado, o retângulo vermelho é adicionado ou removido da árvore de visualizações e a transição é aplicada, ou seja, se aparece ou desaparece com um efeito de escala.
+
+Por hora, é isso, aprendiz! Espero que este tópico sobre animações e transições em SwiftUI tenha ficado mais claro para você. Continue praticando e não se esqueça de se divertir enquanto aprende. Até a próxima!
+
+@@07
+O que aprendemos?
+
+Nessa aula, você aprendeu como:
+Corrigindo Mensagens de Erro: Vimos como corrigir um problema onde todas as mensagens de erro eram classificadas como "erro desconhecido" e aprendemos a configurar mensagens de erro específicas a partir do backend.
+Priorizando a Experiência do Usuário: Reforçamos a ideia de sempre manter o usuário informado sobre o que está acontecendo no aplicativo, utilizando, neste caso, o widget snackbar para comunicar erros.
+Configurando o Snackbar: Aprendemos a configurar o nosso snackbar para que ele desapareça depois de um certo tempo, dando foco na usabilidade do usuário.
+Implementação do OnAppear: Este recurso funciona para determinar o que queremos que uma view faça assim que ela seja exibida na tela. Neste vídeo, foi utilizado para fazer o snackbar desaparecer depois de um tempo.
+Adicionando Transições: Adicionamos uma transição ao snackbar para que ele apareça de cima para baixo na tela.
+
