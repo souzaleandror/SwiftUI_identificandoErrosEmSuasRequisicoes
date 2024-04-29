@@ -1455,3 +1455,290 @@ Configurando o Snackbar: Aprendemos a configurar o nosso snackbar para que ele d
 Implementação do OnAppear: Este recurso funciona para determinar o que queremos que uma view faça assim que ela seja exibida na tela. Neste vídeo, foi utilizado para fazer o snackbar desaparecer depois de um tempo.
 Adicionando Transições: Adicionamos uma transição ao snackbar para que ele apareça de cima para baixo na tela.
 
+#### 29/04/2024
+
+@04-Skeleton
+
+@@01
+Projeto da aula anterior
+
+Você pode revisar o seu código e acompanhar o passo a passo do desenvolvimento do nosso projeto e, se preferir, pode baixar o projeto da aula anterior.
+Bons estudos!
+
+@@02
+Uso de Skeleton para carregamento de informações
+
+De volta ao nosso projeto, vamos continuar falando sobre tratamento de erros. Agora, vamos abordar um caso de uso comum em todos os aplicativos: o carregamento de informações.
+Problema de carregamento inicial
+Vamos gerar uma compilação build para começarmos a pensar a respeito. Como estamos rodando o projeto da API localmente na porta 3000, o tempo de resposta do servidor para o cliente (ou seja, para o aplicativo) é quase imperceptível. Não vemos nenhum tempo de espera, mas sabemos que, na vida real, a situação é diferente. Existem vários fatores que podem atrasar o retorno das informações para a pessoa usuária.
+
+Código que simula atraso (sleep())
+Para simular esse problema, vamos acessar o arquivo HomeView.swift. Na linha 47, temos o método onAppear(). Assim que a vista é desenhada, o trecho de código abaixo é executado. É feita uma chamada para a API local e são retornados os especialistas.
+
+HomeView.swift:
+.onAppear {
+    Task {
+        do {
+            guard let response = try await viewModel.getSpecialists() else { return }
+            self.specialists = response
+        } catch {
+            isShowingSnackBar = true
+            let errorType = error as? RequestError
+            errorMessage = errorType?.customMessage ?? "Ops! Ocorreu um erro"
+        }
+    }
+}
+COPIAR CÓDIGO
+Vamos usar o código sleep(4) na linha 50. Este código faz com que o aplicativo fique travado por quatro segundos, simulando o tempo de resposta de um servidor para o aplicativo. Com isso, será mais fácil visualizar o caso de uso desejado.
+
+sleep(4)
+COPIAR CÓDIGO
+Agora, vamos rodar o projeto no simulador. Observe como ele fica com uma tela branca por vários segundos até carregar. Na prática, na vida real, é assim que acontece. Temos com a tela branca com a frase "Veja abaixo os especialistas da Vollmed disponíveis e marque já a sua consulta!", apresentando um tempo de espera para a pessoa usuária.
+
+É nisso que vamos trabalhar agora!
+
+Implementação do Skeleton
+Em casos onde precisamos esperar o retorno da informação, é comum usar um componente chamado skeleton (esqueleto, em português). Basicamente, desenhamos o que deveria ser visto (neste caso, os cartões de médicos) de uma forma que informa à pessoa usuária que o aplicativo está tentando buscar esses dados. A ideia é criar um skeleton para essa lista, mostrando ao usuário que o aplicativo tenta buscar os dados. Assim que conseguir, ele os mostrará na tela.
+
+Isso é muito mais amigável para a pessoa usuária entender o que está acontecendo, do que não mostrar nada. Dá a impressão de que o aplicativo está travado ou que não vai buscar nenhuma informação.
+
+Para começar, precisamos pensar em qual momento isso deveria acontecer. Com base nisso, precisaríamos de uma variável de controle para saber se mostramos ou não o skeleton.
+
+Vamos começar criando uma variável de controle no arquivo HomeView.swift. Na parte superior, onde temos algumas variáveis nas linhas 16, 17 e 18, vamos criar mais uma, logo abaixo de isShowingSnackBar, chamada isFetchingData.
+
+Essa variável booleana nos informa se o aplicativo está buscando os dados. Inicialmente, ela será verdadeira (true), assim, ao inicializar o aplicativo, começaremos mostrando o skeleton. Quando o servidor devolver a resposta para o aplicativo, mudamos para false e mostramos as informações reais.
+
+@State private var isFetchingData = true
+COPIAR CÓDIGO
+Agora vamos voltar ao local onde desenhamos os cards (SpecialistCardView na linha 41), cada especialista médico é um card. Acima disso, começaremos a implementar o skeleton.
+
+Primeiramente, vamos verificar se a variável isFetchingData é verdadeira. Se for, mostraremos o skeleton, caso contrário, manteremos como está. Para fazer isso, vamos cortar o ForEach() da linha 47 e colar dentro do else, na linha 44.
+
+Com isso, já temos uma lógica em que, ao abrir o aplicativo, buscamos os dados e mostramos o skeleton. Assim que o back-end devolver a resposta, a variável isFetchingData será falsa e vamos desenhar as informações reais na tela.
+
+Dentro do bloco if, a ideia é criar uma nova view do skeleton que chamaremos de SkeletonView().
+
+if isFetchingData {
+    SkeletonView()
+} else {
+    ForEach(specialists) { specialist in
+        SpecialistCardView(specialist: specialist)
+            .padding(.bottom, 8)
+    }
+}
+COPIAR CÓDIGO
+Por enquanto, SkeletonView() ainda não existe, então vamos criá-la de fato. Na hierarquia de pastas do nosso projeto, temos a pasta "views", onde vamos criar uma nova pasta para o skeleton. Dentro da pasta "skeleton", vamos criar uma nova view com SwiftUI chamada SkeletonView.
+
+SkeletonView.swift:
+import SwiftUI
+
+struct SkeletonView: View {
+    var body: some View {
+        Text("Hello, World!")
+    }
+}
+
+#Preview {
+    SkeletonView()
+}
+COPIAR CÓDIGO
+Ele traz por padrão a estrutura que já conhecemos. Vamos teclar o atalho "Command + Option + Enter" para abrir a pré-visualização e conseguirmos ver os componentes que vamos desenhar.
+
+A ideia é criarmos um card parecido com o de especialistas. Então, vamos começar colocando no lugar de Text() um Vertical Stack View (VStack()). Passaremos entre parênteses o alignment para .leading, ou seja, começando à esquerda.
+
+Dentro desse VStack(), vamos colocar um Horizontal Stack View (HStack), porque vamos ter uma imagem e dois textos lado a lado. Então, precisamos de um HStack, onde vamos ter uma imagem, e dentro um VStack com duas labels.
+
+O HStack vai ter um espaçamento entre a imagem e os textos. Então, vamos usar spacing com o valor 16.
+
+struct SkeletonView: View {
+    var body: some View {
+        VStack(alignment: .leading) {
+            HStack(spacing: 16) {
+            
+            }
+        }
+    }
+}
+COPIAR CÓDIGO
+Temos então um VStack, e dentro dele um HStack. O skeleton, por padrão, tem um efeito degradê. Vamos acessar o navegador e buscar por "skeleton iOS". Em "Imagens", temos um exemplo com um círculo cinza e dois retângulos cinza ao lado. É basicamente isso o skeleton que vamos desenvolver.
+
+No nosso caso, temos uma imagem e dois textos. Vamos começar criando um LinearGradient() para a imagem, onde vamos passar uma cor gradient: Gradient(). Para esse gradiente, podemos definir algumas cores. Usaremos o parâmetro colors, onde podemos passar, por exemplo, começando com .gray, depois .white, e depois novamente o .gray.
+
+Vamos começar da esquerda para a direita, então o startPoint é no .leading, e o endPoint é no .trailing.
+
+Esse é o efeito que vamos utilizar, mas apenas em um círculo. Para isso, criaremos uma máscara. A máscara será o círculo que vamos adicionar. Então, digitamos .mask(). Dentro disso, criaremos o círculo, então incluímos Circle(). Para definir o tamanho, utilizaremos o .frame(), onde passaremos uma largura (width) de 60 e uma altura (height) também de 60. Por fim, o alinhamento (alignment) será à esquerda, isto é, .leading.
+
+Esse é o tamanho do círculo. Agora vamos colocar um tamanho igual no gradiente. Nesse caso, utilizaremos basicamente a mesma linha 17 para colocar a altura e a largura. Então, podemos copiar e colar na linha 19. O único parâmetro que não teremos será o alignment.
+
+struct SkeletonView: View {
+    var body: some View {
+        VStack(alignment: .leading) {
+            HStack(spacing: 16) {
+                LinearGradient(gradient: Gradient(colors: [.gray, .white, .gray]), startPoint: .leading, endPoint: .trailing)
+                    .mask(
+                        Circle()
+                            .frame(width: 60, height: 60, alignment: .leading)
+                    )
+                    .frame(width: 60, height: 60)
+            }
+        }
+    }
+}
+COPIAR CÓDIGO
+Conclusão
+É basicamente com isso que vamos começar a trabalhar. Por enquanto, ainda não temos o formato do skeleton, mas já começamos a criar a view desse esqueleto. A seguir, continuamos com os próximos componentes que precisamos configurar no esqueleto da página inicial do nosso aplicativo!
+
+@@03
+Implementando Skeleton na home
+
+Nós havíamos criado uma nova pasta dentro de "views" chamada "skeleton", onde temos o arquivo SkeletonView.swift. Nesse arquivo, temos um LinearGradient() que cria um círculo, usando algumas cores configuradas na linha 14. Vamos continuar!
+Continuando a implementação do Skeleton
+Logo após o .frame() da linha 19, vamos criar outro LinearGradient(). Porém, agora vamos utilizar um VStack, pois teremos dois retângulos com gradiente, portanto, vamos empilhá-los verticalmente. Por isso, vamos utilizar o Vertical Stack View.
+
+Vamos aproveitar para configurar o alinhamento dele. O alignment será em .leading e haverá um espaçamento de 8.
+
+No VStack, vamos criar dois LinearGradient(). Começaremos pelo primeiro, para o qual precisamos passar um gradiente, portanto, vamos escolher o segundo construtor. Ele espera um objeto do tipo Gradient, então, vamos instanciá-lo passando algumas cores. As cores serão iguais às configuradas anteriormente, começando com .gray (cinza), depois .white (branco) e .gray novamente. Vamos iniciar da esquerda para a direita, então, startPoint: .leading e endPoint: .trailing.
+
+Agora, vamos colocar uma máscara para o gradiente. Então, vamos chamar a função .mask() e entre parênteses, vamos criar dois textos (Text()). No nosso caso, esses textos simulam a escrita de um nome de um especialista, por exemplo.
+
+Para o primeiro Text(), vamos criar uma nova string chamada placeholderString e, em seguida, usaremos o método .redacted(). Esse método oculta o Text(), usando como base a placeholderString, aplicando o gradiente que criamos.
+
+SkeletonView.swift:
+VStack(alignment: .leading, spacing: 8.0) {
+    LinearGradient(gradient: Gradient(colors: [.gray, .white, .gray]), startPoint: .leading, endPoint: .trailing)
+        .mask(
+            Text(placeholderString)
+                .redacted(reason: .placeholder)
+            )
+}
+COPIAR CÓDIGO
+Nesse momento, o código apresenta um erro, pois o placeholderString da linha 24 não existe. Portanto, vamos criar. Acima na linha 12, criaremos um private var placeholderString, que receberá algum caractere especial. Por exemplo, vamos adicionar uma repetição de asteriscos. Estes serão os caracteres ocultos para exibir no LinearGradient().
+
+private var placeholderString = "********************************"
+COPIAR CÓDIGO
+A ideia é configurar mais um LinearGradient() como esse. Portanto, vamos copiar o que acabamos de criar, da linha 25 até a 29, e colar na linha 31. Agora, vamos rodar o projeto para verificar o resultado. Para isso, vamos gerar um build e testar.
+
+Temos o simulador aberto, com uma view chamada skeleton que representa o card de especialistas. No momento, ela está um pouco estática, mas mais adiante, vamos adicionar uma animação para proporcionar o efeito de carregamento. Isso mostra que o aplicativo está tentando carregar algo. Essas micro interações também são muito úteis em aplicativos, para tratar situações de carregamento de informações e coisas semelhantes.
+
+A parte principal do skeleton está pronta. Uma coisa importante a notar é que toda essa implementação representa apenas um card do skeleton. Seria interessante inserir mais 3 ou 4, para preencher todo o tamanho da tela, até que as informações estejam disponíveis. Portanto, vamos criar uma nova struct na linha 42 chamada SkeletonRow.
+
+Essa struct é uma View que contém tudo que desenvolvemos no SkeletonView. Portanto, vamos recortar o VStack inteiro (da linha 15 até a linha 38) e colar dentro do body da struct que criamos. Além disso, vamos copiar a variável placeholderString e mover para acima do body, dentro de SkeletonRow.
+
+struct SkeletonRow: View {
+
+    private var placeholderString = "********************************"
+
+    var body: some View {
+        VStack(alignment: .leading) {
+            HStack(spacing: 16) {
+                LinearGradient(gradient: Gradient(colors: [.gray, .white, .gray]), startPoint: .leading, endPoint: .trailing)
+                    .mask(
+                        Circle()
+                            .frame(width: 60, height: 60, alignment: .leading)
+                    )
+                    .frame(width: 60, height: 60)
+
+                VStack(alignment: .leading, spacing: 8.0) {
+                    LinearGradient(gradient: Gradient(colors: [.gray, .white, .gray]), startPoint: .leading, endPoint: .trailing)
+                        .mask(
+                            Text(placeholderString)
+                                .redacted(reason: .placeholder)
+                        )
+
+                    LinearGradient(gradient: Gradient(colors: [.gray, .white, .gray]), startPoint: .leading, endPoint: .trailing)
+                        .mask(
+                            Text(placeholderString)
+                                .redacted(reason: .placeholder)
+                        )
+                }
+            }
+        }
+    }
+}
+COPIAR CÓDIGO
+Isso representa um único card. A ideia do SkeletonView é ter várias SkeletonRow. Então, dentro do body da linha 14, vamos criar uma VStack, pois vamos adicionar várias SkeletonRow uma abaixo da outra, e dentro dela faremos um ForEach(). A condição será: iniciar do 0 e ir até o 4.
+
+Quando trabalhamos com objetos que não têm identifiable, que não seguem o protocolo, precisamos passar um identificador. Podemos fazer isso adicionando \.self. Dessa forma, é atribuído um identificador a cada elemento que o ForEach() itera. Dentro do identificador, chamaremos SkeletonRow().
+
+struct SkeletonView: View {
+    var body: some View {
+        VStack {
+            ForEach(0..<4, id: \.self) { index in
+                SkeletonRow()
+            }
+        }
+    }
+}
+COPIAR CÓDIGO
+Conclusão
+Recapitulando, criamos uma SkeletonRow, que representa um único card. Dentro do SkeletonView, criamos um ForEach() para que ele passe quatro vezes e desenhe quatro vezes o SkeletonRow. Vamos testar o aplicativo novamente.
+
+Agora, temos a view do skeleton na tela. Ela está muito mais parecida com os dados que o aplicativo vai carregar e temos a representação quatro vezes. Ainda precisamos corrigir alguns problemas de espaçamento e adicionar a animação, que é a parte mais interessante, mas continuaremos falando do skeleton na próxima aula!
+
+@@04
+Carregando Skeletons
+
+Imagine que você é da equipe de desenvolvimento na Clínica Médica Voll. Dentre suas tarefas está a melhoria na experiência do usuário ao utilizar o novo aplicativo da clínica, o "VollMed". Parte dessa melhoria envolve a implementação de uma funcionalidade chamada "Skeleton", que visa oferecer um feedback visual ao usuário durante o carregamento de páginas que precisam buscar muitos dados, como a lista de médicos especialistas.
+Considerando o status da variável isFetchingData, quais partes do código serão executadas durante o carregamento dos dados e o que será mostrado para o usuário?
+
+
+Alternativa correta
+SkeletonView() será executado e o usuário verá vários retângulos cinzas empilhados.
+ 
+A estrutura condicional if no corpo de HomeView verifica o status da variável isFetchingData. Se esta for true (indicando que os dados estão sendo carregados), o código executa SkeletonView(). Essa função cria uma interface temporária com os elementos VStack, HStack, Circle e Rectangle que dão ao usuário uma visualização de retângulos cinzas empilhados.
+Alternativa correta
+O SkeletonView() vai exibir os dados verdadeiros, o usuário verá a lista de médicos especialistas imediatamente ao abrir o app.
+ 
+Alternativa correta
+SkeletonView() será executado e o usuário verá uma tela em branco.
+
+@@05
+Faça como eu fiz: Design Skeleton
+
+A Clínica Médica Voll acabou de lançar um novo aplicativo chamado "VollMed" para melhorar a experiência digital de seus pacientes. A interface do aplicativo inclui uma funcionalidade que permite aos usuários visualizar uma lista de médicos especialistas. Dada a quantidade de dados requeridos para esta funcionalidade, o carregamento da informação pode levar alguns segundos, o que pode resultar em uma experiência ruim para os usuários. Portanto, você recebeu a demanda para projetar um componente de interface do usuário chamado "Skeleton" que será exibido durante o carregamento dos dados para melhorar a experiência geral do usuário. Sua tarefa é criar esse "Skeleton" com o uso da linguagem de programação Swift.
+
+Comece identificando o momento em que o Skeleton será exibido para o usuário. Crie uma variável de controle para saber se está carregando os dados. Inicialize a variável como true para iniciar o aplicativo mostrando o Skeleton.
+Em seguida, crie condições para exibir o Skeleton ou os dados verdadeiros dependendo do status da variável de controle. Neste ponto, você precisará criar o componente de interface do usuário Skeleton.
+
+Finalmente, crie múltiplas linhas do Skeleton para simular a lista de médicos especialistas que será carregada.
+
+Há várias etapas e blocos de código que você precisará adicionar para completar este exercício. Você está pronto para o desafio?
+
+import SwiftUI
+
+struct HomeView: View {
+    @State private var isFetchingData = true
+    var body: some View {
+        if isFetchingData {
+            SkeletonView()
+        } else {
+            //Código para exibir os dados verdadeiros
+        }
+    }
+}
+struct SkeletonView: View {
+    var body: some View {
+        VStack {
+            ForEach(0..<3) {_ in
+                HStack {
+                    Circle().fill(Color.gray).frame(width:60, height:60)
+                    VStack(alignment: .leading) {
+                        Rectangle().fill(Color.gray).frame(height:20)
+                        Rectangle().fill(Color.gray).frame(height:20)
+                    }
+                }
+            }
+        }
+    }
+}
+COPIAR CÓDIGO
+Nesta solução, estamos criando uma variável chamada isFetchingData para controlar se estamos atualmente pegando os dados. Se isFetchingData for true, mostramos o SkeletonView, caso contrário, mostramos os dados verdadeiros. O SkeletonView é uma representação visual de uma lista que é exibida enquanto estamos buscando os dados.
+
+@@06
+O que aprendemos?
+
+Nessa aula, você aprendeu como:
+Implementação de um Skeleton View: Passamos pelo processo de criar um esqueleto para melhorar a experiência de carregamento do aplicativo, também discutimos a necessidade de usar esse esqueleto.
+Utilizando VStackView: Explicado como empilhar retângulos com gradient, utilizando o VStackView e ajustando o alinhamento e espaçamento.
+Aplicando Máscaras de Texto: Foi ensinado como utilizar máscaras de texto para simular a escrita de um nome de um especialista.
+Implementando uma Struct Skeleton Row: Foi criada uma nova Struct denominada Skeleton Row que representa um único card, repetido várias vezes no Skeleton View.
