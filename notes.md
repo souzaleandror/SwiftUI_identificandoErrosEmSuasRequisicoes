@@ -1742,3 +1742,293 @@ Implementação de um Skeleton View: Passamos pelo processo de criar um esquelet
 Utilizando VStackView: Explicado como empilhar retângulos com gradient, utilizando o VStackView e ajustando o alinhamento e espaçamento.
 Aplicando Máscaras de Texto: Foi ensinado como utilizar máscaras de texto para simular a escrita de um nome de um especialista.
 Implementando uma Struct Skeleton Row: Foi criada uma nova Struct denominada Skeleton Row que representa um único card, repetido várias vezes no Skeleton View.
+
+#### 30/04/2024
+
+@05-Animação de loading
+
+@@01
+Projeto da aula anterior
+
+Você pode revisar o seu código e acompanhar o passo a passo do desenvolvimento do nosso projeto e, se preferir, pode baixar o projeto da aula anterior.
+Bons estudos!
+
+@@02
+Implementando animações
+
+Para finalizar o Skeleton, arrumaremos o problema de espaçamento entre uma linha e outra. Por fim, incluiremos a animação para dar o efeito de carregamento de dados, conhecido como loading.
+Corrigindo o espaçamento
+Com o arquivo SkeletonView aberto, na linha 12, temos um VStack onde, a cada iteração do for, incluímos um SkeletonRow. Agora, no VStack, adicionamos parênteses e passamos spacing: 35, com isso o problema deve ser resolvido.
+
+Para conferir, rodamos o projeto novamente e notamos que deu certo. Agora, podemos partir para a animação.
+
+Implementando a animação
+Implementaremos uma animação chamada redacted, que oculta os dados e exibe os dados, criando um efeito de carregamento.
+
+Para isso, na pasta "Extensions", onde temos algumas extensões para serem utilizadas em outros lugares do projeto, criaremos a animação. Para isso, clicamos com o botão direito nela e depois em "New File". Selecionamos a opção "Swift File" e depois clicamos em "Next". Na janela seguinte, nomeamos o arquivo de RedactedAnimationModifier, copiamos o nome e clicamos o botão "Create".
+
+Começaremos criando uma struct com o nome do arquivo RedactedAnimationModifier, adicionamos dois pontos e passamos o modificador chamado ViewModifier. Ao trabalhar com SwiftUI, podemos modificar o comportamento de algumas views utilizando o ViewModifier.
+
+Modificaremos o comportamento de uma view de SwiftUI, para isso, precisamos implementar o protocolo ViewModifier.
+Repare que aparece um aviso na lateral da ferramenta, pois precisamos importar o SwiftUI. Para corrigir, na linha 9, passamos import SwiftUI.
+
+import SwiftUI
+
+O struct RedactedAnimationModifier: ViewModifier {
+COPIAR CÓDIGO
+Agora, precisamos implementar algum método, para sabermos qual, na mensagem de erro, clicamos no botão "Fix", localizado na lateral direita da tela. É recomendado que implementemos o body, um método.
+
+Se no fim do código escrevermos body e escolhermos a opção sugerida pela ferramenta body(content:), é implementado o método abaixo:
+
+func body(content: content) -> some View {
+}
+COPIAR CÓDIGO
+É dentro desse método que trabalharemos com a animação. Na linha abaixo de body(), escrevemos content. A partir dele, podemos alterar algumas propriedades, como, por exemplo, a opacidade, que fará o efeito de aparecer e desaparecer. Para isso, na linha abaixo escrevemos .opacity().
+
+Para isso, precisamos de uma variável para indicar se devemos deixar com mais opacidade ou menos. Na linha 12 escrevemos @State private var isRedacted igual à true.
+
+Agora, nos parênteses de opacity(), faremos algumas verificações, então passamos isRedacted ? 0 : 1, assim, se a variável for verdadeira o valor será 0, caso não, 1.
+
+Também podemos fazer algumas alterações quando a view que implementar a animação aparecer. Para isso, passamos .onAppear {}. Na linha abaixo, passamos o método withAnimation. Repare que ao digitar, a ferramenta indica algumas opções, escolhemos o withAnimation(_ body:).
+
+import SwiftUI
+
+struct RedactedAnimationModifier: ViewModifier {
+
+        @State private var isRedacted = true
+
+        func body (content: Content) -> some View {
+    content
+            .opacity(isRedacted ? 0 : 1)
+            .onAppear {
+                    withAnimation (animation: Animation?, body: () throws -> Result)
+            }
+        }
+}
+COPIAR CÓDIGO
+Em withAnimation(), passamos nos parênteses Animation.easeInOut(). Dos parênteses, passamos duration: 0.7. Feito isso, apagamos o trecho de código de body.
+
+Adicionamos chaves e dentro, alteraremos o valor de redacted. Escrevemos sef.isRedacted.toggle(). Além disso, acrescentaremos uma repetição. Na linha 18, após duration, escrevemos .repeatForever(autoreverses:true).
+
+import SwiftUI
+
+struct RedactedAnimationModifier: ViewModifier {
+
+        @State private var isRedacted = true
+        
+        func body (content: Content) -> some View {
+            content
+                .opacity (isRedacted ? 0 : 1)
+                .onAppear {
+                        withAnimation (Animation.easeInOut (duration: 0.7). repeat Forever (autoreverses: true)) {
+                            self.isRedacted.toggle()
+                        }
+                }
+        }
+}
+COPIAR CÓDIGO
+Com isso, já podemos começar a testar. Como essa animação poderá ser feita em qualquer parte do projeto, criaremos uma extensão de view onde fechamos a struct do RedactedAnimationModifier, na linha 23.
+
+Escrevemos extension View {}. Nas chaves, na linha abaixo, escrevemos func redactedAnimation(). Em seguida, passamos uma view -> some View {}. Nas chaves, passamos modifier() e nos parênteses RedactedAnimationModifier().
+
+extension View {
+        func redactedAnimation() -> some View {
+            modifier (RedactedAnimationModifier()])
+        }
+}
+COPIAR CÓDIGO
+Assim, temos uma extensão e a implementação da animação. Agora ficará mais claro quando testarmos, pois colocamos o método repeatForever e a opacidade.
+
+SkeletonView
+Para que tudo funcione, precisaremos fazer algumas alterações. Então, abrimos novamente o arquivo SkeletonView. Em Circle(), na linha abaixo de .frame(), podemos colocar essa animação. Na linha 30, configuramos a altura e largura, então, na 31 escrevemos .redactedAnimation(), que é a extensão que criamos.
+
+//Código omitido
+
+Circle()
+    .frame(width: 60, height: 60, alignment: .leading)
+    .redactedAnimation()
+
+//Código omitido
+COPIAR CÓDIGO
+Na linha 40, abaixo de.redacted(), também chamamos o redactedAnimation.
+
+//Código omitido
+
+Text(placeholderString)
+        .redacted(reason: .placeholder)
+        .redactedAnimation()
+        
+//Código omitido
+COPIAR CÓDIGO
+Para finalizar, dentro do LinearGradient(), na linha 47, passamos o redactedAnimation().
+
+//Código omitido
+
+LinearGradient(gradient: Gradient(colors: [.gray, white, .gray]),
+        startPoint: .leading, endPoint: .trailing)
+        .mask(
+            Text(placeholderString)
+                    .redacted(reason: .placeholder)
+                    .redactedAnimation()|
+        )
+        
+//Código omitido
+COPIAR CÓDIGO
+Animação pronta, agora vamos testar. Abrimos o simulador e notamos que a animação que criamos está sendo exibida na tela.
+
+Abaixo do texto "Veja abaixo os especialistas da Vollmed disponíveis e marque já a sua consulta" há um círculo na cor cinza, que se refere ao espaço da foto do especialista da Vollmed. Ao lado direito duas linhas cinzas, que se referem aos dados desse especialista que aparecerá na tela. Esses elementos ficam piscando na tela, como se fosse o efeito de carregamento dos dados.
+
+Vários aplicativos utilizam essa animação, principalmente as redes sociais. Qualquer aplicativo que busque dados no servidor pode utilizar o SkeletonView. Esse recurso ajuda a dar a sensação ao usuário de que o aplicativo está tentando buscar uma informação.
+Nesse caso, criamos um Skeleton para colocar em prática os conceitos aprendidos de SwiftUI e um pouco de animação. Porém, também há bibliotecas que possuem o skeleton pronto para o projeto.
+
+HomeView
+Um ponto importante é que em HomeView, usamos o sleep para simular essa demora na requisição e não definimos a variável para esconder o skeleton. Faremos isso.
+
+Dependendo da versão do iOS que você estiver usando, pode ser que a animação não funcione. Então, uma forma de testar é apagando o sleep(4) da linha 56 e em seguida derrubar o servidor através do terminal.
+
+Para isso, basta abrir o terminal e apertar o comando "Ctrl+C", após derrubar a conexão será possível rodar o projeto e ver a animação do skeleton. Ao abrir a aplicação, repare que aparece um erro e depois o skeleton.
+
+É importante definirmos o valor da variável de animação, então, na linha 56, escrebemos isFetchingData igual à false. Assim que ele retornar a resposta, definimos como falso e conseguimos de fato mostrar as informações dos especialistas.
+
+//Código omitido
+
+Task {
+        do {
+                isFetchingData = false
+                guard let response = try await viewModel.getSpecialists() else {
+                        return }
+                self.specialists = response
+} catch {
+                isShowingSnackBar = true
+                let errorType = error as? RequestError
+                errorMessage = errorType?.customMessage ?? "Ops! Ocorreu um erro"
+}
+}
+}
+COPIAR CÓDIGO
+Rodamos mais uma vez o projeto para analisarmos o skeleton. Ainda aparece um erro, pois o servidor está desabilitado, em seguida, como colocamos o false, não será exibido o skeleton porque está caindo no erro. Mas se voltarmos a conexão no terminal e com o comando npm start e buildar o projeto novamente.
+
+Feito isso, as fotos e dados dos especialistas aparecem na tela. Como é um servidor local muito rápido, não conseguimos de fato visualizar o tempo de demora do carregamento. Mas com o sleep, conseguimos configurar um tempo e visualizar o skeleton.
+
+Assim, concluímos a implementação. A ideia foi compartilhar alguns insights de tratamento de erros gerais no nosso aplicativo e como utilizar o skeleton no projeto.
+
+@@03
+Faça como eu fiz: animação de carregamento
+
+A clínica médica Voll está trazendo melhorias para sua plataforma online. Para melhorar a experiência de uso do app, eles querem adicionar uma animação de carregamento para quando os dados dos médicos especialistas estão sendo carregados. Para isso, você irá implementar uma animação Redacted em Swift. Redacted é um efeito que temporariamente oculta o conteúdo de uma View. É comumente usado para mostrar um placeholder enquanto os dados reais são carregados em segundo plano. Sua tarefa é modificar a view existente (Skeleton) para adicionar a animação.
+
+Dentro da pasta Extensions, crie um novo arquivo chamado RedactedAnimationModifier. Aqui está o código:
+import SwiftUI
+
+struct RedactedAnimationModifier: ViewModifier {
+    @State private var isRedacted = true
+
+    func body(content: Content) -> some View {
+        content
+            .opacity(isRedacted ? 0 : 1)
+            .onAppear {
+                withAnimation(Animation.easeInOut(duration: 0.7).repeatForever(autoreverses: true)) {
+                    self.isRedacted.toggle()
+                }
+            }
+    }
+}
+
+extension View {
+    func redactedAnimation() -> some View {
+        modifier(RedactedAnimationModifier())
+    }
+}
+COPIAR CÓDIGO
+Agora, precisamos chamar essa animação dentro do Skeleton:
+
+struct SkeletonRow: View {
+    var body: some View {
+            VStack(spacing: 35) {
+                 ForEach(0..<4, id: \.self) { index in
+                     SkeletonRow()
+                }
+            }
+    }
+}
+COPIAR CÓDIGO
+A animação está pronta! Você modificou a View para adicionar a animação Redacted, criando uma experiência de usuário mais agradável ao carregar dados.
+
+@@04
+Carregando Skeletons
+
+Você faz parte da equipe de desenvolvimento da Clínica Médica Voll e é responsável pela melhoria da experiência do usuário no aplicativo "VollMed". Você foi incumbido de implementar a animação "Redacted", que tem como função ocultar temporariamente o conteúdo de uma View enquanto os dados estão sendo carregados. A ideia é melhorar a experiência do usuário ao carregar os dados dos médicos especialistas. Suponha que houve uma falha na conexão com a internet e os dados dos médicos especialistas estão demorando mais do que o previsto para serem carregados.
+Baseado no projeto da aula, qual seria a experiência do usuário durante este período de carregamento prolongado?
+
+O usuário verá um círculo em constante rotação, indicando que os dados estão sendo carregados.
+ 
+Alternativa correta
+Os retângulos cinzas empilhados, aparecerão e desaparecerão continuamente com um efeito de fade.
+ 
+O efeito "Redacted" é implementado de tal forma que os retângulos cinzas criados pelo SkeletonView() aparecem e desaparecem continuamente, criando um efeito de carregamento.
+Alternativa correta
+O usuário verá uma tela totalmente em branco.
+
+@@05
+Projeto final
+
+Você pode baixar ou acessar o código-fonte do projeto final.
+Aproveite para explorá-lo e revisar pontos importantes do curso.
+
+Bons estudos!
+
+https://github.com/alura-cursos/3367-swift-tratamento-de-erros/archive/refs/heads/aula-5.zip
+
+https://github.com/alura-cursos/3367-swift-tratamento-de-erros/tree/aula-5
+
+@@06
+O que aprendemos?
+
+Nessa aula, você aprendeu como:
+Configurando espaçamento: No começo do vídeo, é mostrado como arrumar o espaçamento entre as linhas de um Skeleton. Isso é feito ao colocar um espaçamento de 35 na linha 12 do arquivo SkeletonView.
+Inclusão de animação: A animação Redacted é introduzida para dar um efeito de carregamento de dados. Essa animação deixa os dados ocultos e eles aparecem e desaparecem, dando um efeito de carregamento real.
+Utilizando ViewModifier: É explicado que quando se trabalha com SwiftUI, podemos modificar o comportamento de algumas views utilizando o ViewModifier. Neste caso, a animação é implementada através de um protocolo ViewModifier.
+Criando e usando extensão de View: Uma extensão de View é feita para possibilidades de uso da animação em qualquer parte do projeto. Isso é feito ao criar um método na extensão de View que usa o modificador e passa a struct declarada anteriormente.
+Manipulando opacidade: Aprende-se como controlar o efeito de aparecer e desaparecer através da alteração da opacidade dos dados. Isso é feito com a ajuda de uma variável chamada isRedacted.
+
+@@07
+Recados finais
+
+Parabéns, você chegou ao fim do nosso curso. Tenho certeza que esse mergulho foi de muito aprendizado.
+Após os créditos finais do curso, você será redirecionado para uma tela na qual poderá deixar seu feedback e avaliação do curso. Sua opinião é muito importante para nós.
+
+Aproveite para conhecer a nossa comunidade no Discord da Alura e se conectar com outras pessoas com quem pode conversar, aprender e aumentar seu networking.
+
+Continue mergulhando com a gente 🤿.
+
+@@08
+Conclusão
+
+Parabéns por concluir mais um curso de iOS!
+Nessa jornada, você aprendeu vários tópicos de tratamento de erro que serão muito importantes na sua vida profissional.
+
+Antes de concluir, vamos relembrar o que aprendemos!
+
+Primeiro, estudamos um pouco sobre status code. Em cursos anteriores, falamos sobre casos de erros que mapeamos na classe RequestError.
+
+Porém, nesse curso, o objetivo era pensar em erros que o back-end define e retorna para o aplicativo. Então, criamos um erro customizado onde recebemos uma mensagem do back-end para mostrar ao usuário.
+
+Depois disso, discutimos como poderíamos apresentar essas informações de erro para o usuário. Nisso, reforçamos a importância de manter o usuário informado de tudo o que está acontecendo no app.
+
+Aprendemos como criar um alert controller padrão do iOS, ou criar uma view customizável, que foi o que fizemos.
+
+Criamos a view do SnackBarErrorView, onde implementamos em SwiftUI uma view para ser utilizada para diversos tipos de erros no app, permitindo assim mostrar mensagens de erro ao usuário. Também mexemos um pouco com animação, controlando como a view aparece e desaparece.
+
+Em seguida, pensamos em outros casos de uso, como do skeleton. Quando abrimos um aplicativo, ou uma tela dele, é normalmente feita uma requisição para um servidor, e essa requisição pode levar segundos até retornar informações.
+
+Consideramos que o skeleton é uma boa prática para indicar ao usuário que o aplicativo está carregando informações. Criamos então um card de especialistas utilizando um gradiente de cinza para branco e também a linha para cada item, como nome e especialidade do profissional da saúde.
+
+Por fim, falamos um pouco sobre animação. Criamos a view modifier com o efeito de redacted, onde alteramos a opacidade da view conforme a variável isRedacted, que também criamos na struct. Para utilizar esse efeito em várias partes do aplicativo, criamos uma extensão.
+
+Esse foi o conteúdo aprendido durante todo esse curso de tratamento de erros. Esperamos que você tenha gostado e que coloque em prática todo aprendizado nos seus projetos pessoais e corporativos.
+
+Caso você tenha alguma dúvida ou deseja interagir com outros alunos que estão passando pelo mesmo processo de aprendizagem, sinta-se convidado a participar da nossa comunidade do Discord.
+
+Ao concluir o curso, você será direcionado à página de avaliação. Seu feedback é muito importante para podermos continuar evoluindo.
+
+Até a próxima!
